@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-DNS1="8.8.8.8"
-DNS2="8.8.4.4"
+DNS1="1.1.1.1"
+DNS2="1.0.0.1"
 SCRIPT_PATH="/usr/local/bin/dns-persist.sh"
 RESOLV_CONF="/etc/resolv.conf"
 
