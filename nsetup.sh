@@ -42,7 +42,7 @@ detect_system() {
         echo "netplan"
     else
         echo "unknown"
-    }
+    fi
 }
 
 # Function to display DNS menu
@@ -127,6 +127,21 @@ create_persistence_script() {
 # Provider: $PROVIDER
 # DNS1: $DNS1
 # DNS2: $DNS2
+
+# Function to detect system type
+detect_system() {
+    if command -v systemctl &>/dev/null && systemctl list-unit-files | grep -q systemd-resolved; then
+        echo "systemd-resolved"
+    elif command -v systemctl &>/dev/null && systemctl list-unit-files | grep -q NetworkManager; then
+        echo "networkmanager"
+    elif [[ -f /etc/network/interfaces ]] || [[ -d /etc/network/interfaces.d ]]; then
+        echo "ifupdown"
+    elif [[ -f /etc/netplan/*.yaml ]] 2>/dev/null; then
+        echo "netplan"
+    else
+        echo "unknown"
+    fi
+}
 
 # Direct method for /etc/resolv.conf
 echo "nameserver $DNS1" > $RESOLV_CONF
