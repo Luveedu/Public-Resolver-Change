@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-DNS1="1.1.1.1"
-DNS2="1.0.0.1"
+DNS1="8.8.8.8"
+DNS2="8.8.4.4"
 SCRIPT_PATH="/usr/local/bin/dns-persist.sh"
 RESOLV_CONF="/etc/resolv.conf"
 
@@ -26,7 +26,7 @@ chmod +x $SCRIPT_PATH
 
 # 2. Run it immediately
 $SCRIPT_PATH
-echo "Done: DNS set to Cloudflare ($DNS1, $DNS2)."
+echo "Done: DNS set to Google ($DNS1, $DNS2)."
 
 # 3. Add to Cron for persistence (Reboot + Hourly)
 # We check if the job already exists to avoid duplicates
