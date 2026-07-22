@@ -6,16 +6,13 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Check if running interactively
-if [[ ! -t 0 ]]; then
-   echo "Error: This script must be run interactively, not piped or redirected."
-   exit 1
-fi
-
 echo "=========================================="
 echo "    Persistent DNS Configuration Tool     "
 echo "=========================================="
 echo ""
+
+# Redirect stdin from /dev/tty for interactive input
+exec < /dev/tty
 
 # ----------------------------------------
 # 1. Method Selection
