@@ -1,14 +1,79 @@
 #!/bin/bash
 
-# Ensure the script is run as root
-if [[ $EUID -ne 0 ]]; then
-   echo "Error: Please run this script as root (use sudo)."
-   exit 1
+# ─────────────────────────────────────────────────────────────────────────
+# Fix for:  curl -sSL URL | sudo bash
+#
+# Problem:  When piped, stdin = pipe (script content). Bash reads the
+#           script from stdin, so interactive `read` commands cannot
+#           access the terminal. Additionally, stdout is block-buffered
+#           so prompts are invisible → script appears to hang.
+#
+# Strategy (two-tier):
+#   1. Download script to temp file and re-exec (cleanest — stdin=terminal)
+#   2. Fallback: redirect stdout→/dev/tty so output is unbuffered, and
+#      use  read VAR < /dev/tty  for interactive input
+# ─────────────────────────────────────────────────────────────────────────
+_PIPED_MODE=false
+
+if [ ! -t 0 ]; then
+    _PIPED_MODE=true
+
+    # ── Tier 1: download & re-exec ──────────────────────────────────────
+    _SCRIPT_URL="https://raw.githubusercontent.com/Luveedu/Public-Resolver-Change/refs/heads/main/nsetup.sh"
+    _TMPF=$(mktemp /tmp/nsetup.XXXXXX.sh 2>/dev/null)
+    _DOWNLOADED=false
+
+    if [ -n "$_TMPF" ]; then
+        if command -v curl &>/dev/null; then
+            curl -sSL "$_SCRIPT_URL" -o "$_TMPF" 2>/dev/null && [ -s "$_TMPF" ] && _DOWNLOADED=true
+        fi
+        if ! $_DOWNLOADED && command -v wget &>/dev/null; then
+            wget -q "$_SCRIPT_URL" -O "$_TMPF" 2>/dev/null && [ -s "$_TMPF" ] && _DOWNLOADED=true
+        fi
+    fi
+
+    if $_DOWNLOADED; then
+        # Cleanup the temp copy when the re-exec'd script exits
+        trap 'rm -f "$_TMPF" 2>/dev/null' EXIT
+        chmod +x "$_TMPF"
+        exec bash "$_TMPF" "$@"
+        # exec replaces this process — from here stdin IS the terminal
+    fi
+
+    rm -f "$_TMPF" 2>/dev/null
+
+    # ── Tier 2: fallback when download fails (e.g. broken DNS) ──────────
+    # Redirect stdout & stderr straight to /dev/tty so output is never
+    # stuck in a buffer. stdin (fd 0) stays as the pipe — bash continues
+    # reading the script from its internal buffer. Every 'read' command
+    # will explicitly read from /dev/tty.
+    if [ -e /dev/tty ]; then
+        exec 1>/dev/tty 2>&1
+    else
+        printf "\nError: Cannot run interactively when piped and no TTY is available.\n"
+        printf "Please download and run the script manually:\n"
+        printf "  curl -sSL %s -o nsetup.sh\n" "$_SCRIPT_URL"
+        printf "  sudo bash nsetup.sh\n\n"
+        exit 1
+    fi
 fi
 
-# Save original stdin and reconnect to terminal for interactive input
-exec 3<&0  # Save original stdin
-exec < /dev/tty 2>/dev/null || exec <&3  # Try to reconnect, fallback to original
+# Cleanup temp file on exit
+trap 'rm -f /tmp/nsetup.*.sh 2>/dev/null' EXIT
+
+# ─────────────────────────────────────────────────────────────────────────
+# Helper: read user input.  Always reads from /dev/tty so it works both
+# when stdin is the terminal (direct run) and when stdin is a pipe.
+# ─────────────────────────────────────────────────────────────────────────
+_tty_read() {
+    read "$@" < /dev/tty
+}
+
+# Ensure the script is run as root
+if [[ $EUID -ne 0 ]]; then
+    printf "Error: Please run this script as root (use sudo).\n"
+    exit 1
+fi
 
 echo "=========================================="
 echo "    Persistent DNS Configuration Tool     "
