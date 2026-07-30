@@ -17,4 +17,4 @@ Instead of fighting the operating system with cron jobs, this tool utilizes nati
 Run this single command to launch the interactive setup menu (requires root privileges):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Luveedu/Public-Resolver-Change/refs/heads/main/nsetup.sh | sudo bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Luveedu/Public-Resolver-Change/refs/heads/main/nsetup.sh)"
